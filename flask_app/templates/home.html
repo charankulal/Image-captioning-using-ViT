@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Image Captioning{% endblock %}
+
+{% block content %}
+<div class="home-container">
+    <div class="hero-section">
+        <h1 class="hero-title">AI Image Captioning</h1>
+        <p class="hero-subtitle">Upload an image and let our Vision Transformer generate a natural language description</p>
+    </div>
+
+    <div class="upload-section">
+        <div class="upload-card">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <h3 class="upload-title">Drop your image here</h3>
+                    <p class="upload-text">or click to browse</p>
+                    <input type="file" id="imageInput" name="image" accept="image/*" style="display: none;">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('imageInput').click()">
+                        Choose File
+                    </button>
+                </div>
+
+                <div id="previewSection" class="preview-section" style="display: none;">
+                    <img id="imagePreview" class="image-preview" alt="Preview">
+                    <div class="preview-actions">
+                        <button type="button" class="btn btn-secondary" onclick="resetUpload()">Change Image</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <span id="submitText">Generate Caption</span>
+                            <span id="loadingSpinner" class="spinner" style="display: none;"></span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div id="resultSection" class="result-section" style="display: none;">
+            <div class="result-card">
+                <h3 class="result-title">Generated Caption</h3>
+                <div class="caption-box">
+                    <p id="captionText" class="caption-text"></p>
+                </div>
+                <div class="confidence-box">
+                    <span class="confidence-label">Confidence:</span>
+                    <span id="confidenceValue" class="confidence-value"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if recent_captions %}
+    <div class="history-preview">
+        <h2 class="section-title">Recent Captions</h2>
+        <div class="history-grid">
+            {% for caption in recent_captions[:6] %}
+            <div class="history-item">
+                <img src="{{ url_for('static', filename='uploads/' + caption['image_path']) }}"
+                     alt="Captioned image" class="history-image">
+                <p class="history-caption">{{ caption['caption'] }}</p>
+                <span class="history-date">{{ caption['created_at'][:10] }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="history-footer">
+            <a href="{{ url_for('history') }}" class="btn btn-secondary">View All History</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const uploadArea = document.getElementById('uploadArea');
+    const imageInput = document.getElementById('imageInput');
+    const previewSection = document.getElementById('previewSection');
+    const imagePreview = document.getElementById('imagePreview');
+    const resultSection = document.getElementById('resultSection');
+    const uploadForm = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+
+    // Drag and drop functionality
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('drag-over');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+        }
+    });
+
+    // File input change
+    imageInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    function handleFileSelect(file) {
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.src = e.target.result;
+            uploadArea.style.display = 'none';
+            previewSection.style.display = 'block';
+            resultSection.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function resetUpload() {
+        imageInput.value = '';
+        uploadArea.style.display = 'flex';
+        previewSection.style.display = 'none';
+        resultSection.style.display = 'none';
+    }
+
+    // Form submission
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append('image', imageInput.files[0]);
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitText.textContent = 'Generating...';
+        loadingSpinner.style.display = 'inline-block';
+
+        try {
+            const response = await fetch('{{ url_for("generate_caption") }}', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('captionText').textContent = data.caption;
+                document.getElementById('confidenceValue').textContent = data.confidence + '%';
+                resultSection.style.display = 'block';
+
+                // Scroll to results
+                resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error generating caption: ' + error.message);
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitText.textContent = 'Generate Caption';
+            loadingSpinner.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

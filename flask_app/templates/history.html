@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}History - Image Captioning{% endblock %}
+
+{% block content %}
+<div class="history-container">
+    <div class="page-header">
+        <h1 class="page-title">Caption History</h1>
+        <p class="page-subtitle">View all your previously generated captions</p>
+    </div>
+
+    {% if captions %}
+    <div class="history-grid-full">
+        {% for caption in captions %}
+        <div class="history-card">
+            <div class="history-card-image">
+                <img src="{{ url_for('static', filename='uploads/' + caption['image_path']) }}"
+                     alt="Captioned image">
+            </div>
+            <div class="history-card-content">
+                <p class="history-card-caption">{{ caption['caption'] }}</p>
+                <div class="history-card-meta">
+                    <span class="meta-item">
+                        <strong>Confidence:</strong> {{ "%.2f"|format(caption['confidence'] * 100) }}%
+                    </span>
+                    <span class="meta-item">
+                        <strong>Date:</strong> {{ caption['created_at'][:16] }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h2 class="empty-title">No captions yet</h2>
+        <p class="empty-text">Upload an image on the home page to generate your first caption!</p>
+        <a href="{{ url_for('home') }}" class="btn btn-primary">Go to Home</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Image Captioning{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('home') if session.get('user_id') else url_for('signin') }}" class="logo">
+                <span class="logo-icon">🖼️</span> Image Captioning
+            </a>
+            <div class="nav-links">
+                {% if session.get('user_id') %}
+                    <span class="nav-user">Hello, {{ session.get('username') }}!</span>
+                    <a href="{{ url_for('home') }}" class="nav-link">Home</a>
+                    <a href="{{ url_for('history') }}" class="nav-link">History</a>
+                    <a href="{{ url_for('signout') }}" class="nav-link nav-link-logout">Sign Out</a>
+                {% else %}
+                    <a href="{{ url_for('signin') }}" class="nav-link">Sign In</a>
+                    <a href="{{ url_for('signup') }}" class="nav-link nav-link-primary">Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                            <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2025 Image Captioning App | Powered by Vision Transformer</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
